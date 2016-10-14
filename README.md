@@ -1,2 +1,2 @@
 # doremi
-DOmain Ruby Extension Markup Intermediate
+DOmain Ruby Extension Markup Intermediate framework
