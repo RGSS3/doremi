@@ -28,28 +28,37 @@ class Doremi
     @doc.children[1].result
   end  
 
-  def runNode(node, binding)
-    node.doremi self, binding
+  def runNode(node, bd)
+    node.doremi self, bd
   end
 end
 
 module REXML
   class Element
-    attr_accessor :args, :block, :result, :parent
+    attr_accessor :args, :block, :result, :parent, :domain, :binding
     def doremi(domain, binding) 
       self.parent = domain.top
+      self.domain = domain
       domain.push self
       self.args  = []
       self.block = nil
+      self.binding = binding
+
       if self.namespace == "doremi"
-        return eval("self", binding).send(name, self, binding, name, &block)
+        return eval("self", self.binding).send(name, self, name, &block)
       end
       case name
-      when /^[a-z]([^:]*)$/
+      when /^[a-z]/
         children.each{|x|
-          domain.runNode x, binding
+          domain.runNode x, self.binding
         }
-        self.result = eval("self", binding).send(name, *args, &block)
+        a = self.attributes.map{|k, v| [k, v]}.to_h
+        if a.empty? 
+          self.result = eval("self", self.binding).send(name, *args, &block)
+        else
+
+          self.result = eval("self", self.binding).send(name, *args, a, &block)
+        end
         parent.args.push self.result if parent
         domain.pop
       end
@@ -58,8 +67,10 @@ module REXML
   end
 
   class Text
+    attr_accessor :binding
     def doremi(domain, binding)
-      domain.top.args.push(eval('method("eval")', binding).call(to_s)) if to_s!=""
+      self.binding = binding
+      domain.top.args.push(eval(to_s, binding)) if to_s!=""
     end
   end
 end
@@ -69,12 +80,26 @@ def seq(*, last)
   last 
 end
 
+def then(node, name, &block)
+  block = eval "lambda{#{node.children[0].to_s}}", node.binding
+  block.call(node.parent.result)
+end
+
+def set(node, name, &block)
+  node.domain.push node
+  name = node.attributes["name"]
+  node.domain.runNode(node.children[0], node.binding)
+  val = node.result = node.args[0]
+  eval("#{name} = nil; lambda{|#{name}_| #{name} = #{name}_}", node.binding).call(val)
+  node.domain.pop
+end
+
 def id(a)
   a
 end
 
-def addBlock(node, binding, name, &block)
-  node.parent.block = eval "lambda{#{node.children[0].to_s}}", binding
+def addBlock(node, name, &block)
+  node.parent.block = eval "lambda{#{node.children[0].to_s}}", node.binding
 end
 
 def twice
@@ -83,8 +108,10 @@ def twice
 end
 
 r = Doremi.new(%{
- <seq xmlns:ruby="doremi">
-   <twice><ruby:addBlock>p "Hello world"</ruby:addBlock></twice>
+ <seq xmlns:d="doremi">
+   a = 3
+   b = 5
+   <p> a + b </p>
  </seq>
 })
 
