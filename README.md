@@ -8,7 +8,7 @@ Generally, Ruby lacks something acting as Macros in Lisp, and XML even can't run
 
 several usages:
 
-Normal Ruby plus root element is a doremi.
+Normal Ruby plus a root element is a doremi.
 ```ruby
 require './doremi.rb'
 
