@@ -57,7 +57,7 @@ class Doremi
   end
 
   def parent
-    @stack[-2]
+    top.parent
   end
 
   def run
