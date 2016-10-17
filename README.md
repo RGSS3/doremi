@@ -26,7 +26,7 @@ several usages:
      b = <Integer>5</Integer>
      <p> a + b </p>
    </seq>
-  EOF
+  EOF.run
    
 ```
 
