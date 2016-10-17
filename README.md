@@ -22,8 +22,8 @@ several usages:
   #more dynamic `jsx`
   Doremi.new(<<-'EOF')
    <seq xmlns:r="react-like">
-     a = <Integer>3</Integer>
-     b = <Integer>5</Integer>
+     a = <Integer>3</Integer> # method "Kernel#Integer"
+     b = <Integer>5</Integer> 
      <p> a + b </p>
    </seq>
   EOF.run
