@@ -9,18 +9,18 @@ Generally, Ruby lacks something acting as Macros in Lisp, and XML even can't run
 several usages:
 ```ruby
   #when required sinatra and implement d:html
-  Doremi.new(<<-'EOF')
+  Doremi.new(<<-'EOF').run
     <get url="/">
       <d:html>
         <H1>Hello world</H1>
       </d:html>
     </get>
-  EOF.run
+  EOF
 ```
 
 ```ruby
   #more dynamic `jsx`
-  Doremi.new(<<-'EOF')
+  Doremi.new(<<-'EOF').run
    <seq xmlns:r="react-like">
      <r:root>
        a = <Integer>3</Integer> # method "Kernel#Integer"
@@ -28,7 +28,7 @@ several usages:
        <p> a + b </p>
      </r:root>
    </seq>
-  EOF.run
+  EOF
    
 ```
 
