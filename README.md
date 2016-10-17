@@ -4,7 +4,7 @@ DOmain Ruby Extensible Markup Intermediate LAnguage SOLution
 **Just another way of writing Ruby/DSL**.  Not to get confused with JSX, which is another way to writing HTML, not JS. 
 But it happens to be able to generate components like React, but React requires a JS runtime, Doremi does not always require a Ruby runtime after generation.
 
-Generally, ruby lacks something acting as Macros in Lisp, and XML even can't run by itself. Put them together to make better use.
+Generally, Ruby lacks something acting as Macros in Lisp, and XML even can't run by itself. Put them together to make better use.
 
 several usages:
 ```ruby
