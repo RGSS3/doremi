@@ -7,6 +7,23 @@ But it happens to be able to generate components like React, but React requires 
 Generally, Ruby lacks something acting as Macros in Lisp, and XML even can't run by itself. Put them together to make better use.
 
 several usages:
+
+Normal Ruby plus root element is a doremi.
+```ruby
+require './doremi.rb'
+
+Doremi.new(<<-'EOF').run
+  <seq>
+    class A
+      def add(a, b)
+        a + b
+      end
+    end
+    p A.new.add(3, 5)
+  </seq>
+EOF
+```
+
 ```ruby
   #when required sinatra and implement d:html
   Doremi.new(<<-'EOF').run
