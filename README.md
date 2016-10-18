@@ -8,7 +8,7 @@ Generally, Ruby lacks something acting as Macros in Lisp, and XML even can't run
 
 several usages:
 
-Normal Ruby plus a root element is a doremi.
+
 ``` ruby
 require './doremi.rb'
 require 'execjs'
@@ -33,17 +33,16 @@ EOF
 
 
 ```ruby
+#Normal Ruby plus a root element is a doremi.
 require './doremi.rb'
 
 Doremi.new(<<-'EOF').run
-  <seq>
     class A
       def add(a, b)
         a + b
       end
     end
     p A.new.add(3, 5)
-  </seq>
 EOF
 ```
 
