@@ -1,4 +1,5 @@
 require 'rexml/document'
+require 'rexml/xpath'
 class Doremi
   Domain = []
   def initialize(xml, binding = TOPLEVEL_BINDING)
@@ -149,6 +150,18 @@ module DoremiMixin
         name, text = o.name, o.children.map{|x| x.to_s}.join
         o.sink.push b.send(name, text)
      end
+  end
+
+  def current_doremi
+    Doremi::Domain.last
+  end
+
+  def current_doremi_node
+    current_doremi.top
+  end
+
+  def doremi_each(*a, &b)
+    REXML::XPath.each(current_doremi_node, *a, &b)
   end
 
   def seq(*a)
