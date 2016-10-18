@@ -14,13 +14,9 @@ require './doremi.rb'
 require 'execjs'
 Doremi.new(<<-'EOF').run
   <seq xmlns:r="react-like" xmlns:d="doremi" xmlns:js="execjs">
-     register_namespace 'execjs' do |o|
-        name = o.name
-        text = o.children.map{|x| x.to_s}.join
-        o.sink.push ExecJS.send(name, text)
-     end
-     <r:root>
-       a = <js:eval>
+     register_ns_text 'execjs', ExecJS
+     <r:root>     
+       p <js:eval>
          (function(G){
            var s = 0;
            for(var i = 1; i != 101; ++i){
@@ -29,7 +25,6 @@ Doremi.new(<<-'EOF').run
            return s;
           })(this)
       </js:eval>
-       p a
      </r:root>
   </seq>
 EOF
