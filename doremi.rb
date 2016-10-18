@@ -2,8 +2,8 @@ require 'rexml/document'
 class Doremi
   Domain = []
   def initialize(xml, binding = TOPLEVEL_BINDING)
-    @xml     = xml
-    @doc     = REXML::Document.new("<seq>#{@xml}</seq>")
+    @xml     = "<seq>\n#{xml}\n</seq>"
+    @doc     = REXML::Document.new(@xml)
     @binding = binding
     @ns      = {}
     @context  = []
@@ -76,11 +76,10 @@ class Doremi
     Domain.push self
     @stack = []
     @sink  = []
-    runNode @doc.children[1], @binding, @sink
-    @doc.children[1].result
+    runNode @doc.children.find{|x| x}, @binding, @sink
+    @doc.children.find{|x| x}.result
   ensure
     Domain.pop
-  
   end  
 
   def runNode(node, bd, sink, clear = false)
