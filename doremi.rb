@@ -11,6 +11,18 @@ class Doremi
   end
 
   def registers
+    register "" do |node|
+      node.children.each{|x|
+        node.domain.runNode x, node.binding, node.args
+      }
+      a = node.attributes.map{|k, v| [k, v]}.select{|k, v| !(k =~ /^xmlns:/)}.to_h
+      if a.empty?
+        node.result = eval("self", node.binding).send(node.name, *node.args, &node.block)
+      else
+        node.result = eval("self", node.binding).send(node.name, *node.args, a, &node.block)
+      end
+      node.sink.push node.result if node.sink
+    end
     register "doremi" do |node|
       eval("self", node.binding).send(node.name, node)
     end
@@ -22,7 +34,7 @@ class Doremi
         when REXML::Text
           x
         when REXML::Element
-          " ([__node.domain.runNode(__node.children[" + i.to_s + "], __node.binding), __node.args.pop][1]) "
+          " ([__node.domain.runNode(__node.children[" + i.to_s + "], __node.binding, __node.args), __node.args.pop][1]) "
         when nil
           ""
         end
@@ -57,25 +69,26 @@ class Doremi
   end
 
   def parent
-    top.parent
+    top.domain_parent
   end
-
+  
   def run
     Domain.push self
     @stack = []
-    runNode @doc.children[1], @binding
+    @sink  = []
+    runNode @doc.children[1], @binding, @sink
     @doc.children[1].result
   ensure
     Domain.pop
   
   end  
 
-  def runNode(node, bd, clear = false)
+  def runNode(node, bd, sink, clear = false)
     if clear
       Domain.push self
       @stack = []
     end
-    node.doremi self, bd
+    node.doremi self, bd, sink
     node.result
   ensure
     Domain.pop if clear    
@@ -83,60 +96,63 @@ class Doremi
 end
 
 module REXML
+  class Document
+    def xlosure 
+      {}
+    end
+  end
+
   class Element
-    attr_accessor :args, :block, :result, :parent, :domain, :binding
-    def doremi(domain, binding) 
-      self.parent = domain.top
+    attr_accessor :args, :block, :result,  :domain, :binding, :sink
+
+    def xlosure
+      x = parent.xlosure
+      attributes.each{|k, v|
+        if k =~ /^xmlns:/
+          x[k] = v
+        end
+      }
+      x
+    end
+
+    def doremi(domain, binding, sink)
       self.domain = domain
+      self.sink   = sink
       domain.push self
       self.args  = []
       self.block = nil
       self.binding = binding
-      eval("__self = nil; lambda{|node| __self = node}", binding).call(self)
-      if self.namespace != "" && self.namespace != nil        
-        return domain.ns(self.namespace).call(self)
-      end
-      children.each{|x|
-        domain.runNode x, self.binding
-      }
-      a = self.attributes.map{|k, v| [k, v]}.select{|k, v| !(k =~ /^xmlns:/)}.to_h
-      if a.empty?
-        self.result = eval("self", self.binding).send(name, *args, &block)
-      else
-        self.result = eval("self", self.binding).send(name, *args, a, &block)
-      end
-      parent.args.push self.result if parent
+      return domain.ns(self.namespace).call(self)
     ensure
       domain.pop
     end
   end
 
   class Text
-    attr_accessor :binding, :result
-    def doremi(domain, binding)
+    attr_accessor :binding, :result, :sink
+    def doremi(domain, binding, sink)
       self.binding = binding
-      domain.top.args.push(self.result = eval(to_s, binding)) if to_s.strip!="" && to_s != nil && domain.top
+      self.sink = sink
+      self.result = eval(to_s, binding) 
+      sink.push(self.result) if to_s.strip!="" && to_s != nil && sink
     end
-
-    
   end
 end
 
-def register_namespace(a, b = nil, &c)
-  Doremi::Domain.last.register a, b, &c
+
+module DoremiMixin
+  def register_namespace(a, b = nil, &c)
+     Doremi::Domain.last.register a, b, &c
+  end
+
+  def seq(*a)
+    a[-1]
+  end
+
+  def id(a)
+    a
+  end
 end
 
+include DoremiMixin
 
-def seq(*a)
-  a[-1]
-end
-
-def id(a)
-  a
-end
-
-def addBlock(node)
-   node.domain.parent.block = eval "lambda{
-      Doremi.new('').runNode(__self.children[1], __self.binding, true)
-   }", node.binding
-end
