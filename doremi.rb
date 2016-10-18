@@ -3,7 +3,7 @@ class Doremi
   Domain = []
   def initialize(xml, binding = TOPLEVEL_BINDING)
     @xml     = xml
-    @doc     = REXML::Document.new(@xml)
+    @doc     = REXML::Document.new("<seq>#{@xml}</seq>")
     @binding = binding
     @ns      = {}
     @context  = []
@@ -142,7 +142,14 @@ end
 
 module DoremiMixin
   def register_namespace(a, b = nil, &c)
-     Doremi::Domain.last.register a, b, &c
+     Doremi::Domain.last.register a.to_s, b, &c
+  end
+
+  def register_ns_text(a, b)
+     Doremi::Domain.last.register a.to_s do |o|
+        name, text = o.name, o.children.map{|x| x.to_s}.join
+        o.sink.push b.send(name, text)
+     end
   end
 
   def seq(*a)
