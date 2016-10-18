@@ -33,7 +33,7 @@ EOF
 
 
 ```ruby
-#Normal Ruby plus a root element is a doremi.
+#Normal Ruby is a doremi.
 require './doremi.rb'
 
 Doremi.new(<<-'EOF').run
