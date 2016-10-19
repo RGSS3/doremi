@@ -1,5 +1,6 @@
 require 'rexml/document'
 require 'rexml/xpath'
+require 'ripper'
 class Doremi
   Domain = []
   def initialize(xml, binding = TOPLEVEL_BINDING)
@@ -35,13 +36,12 @@ class Doremi
         when REXML::Text
           x
         when REXML::Element
-          " ([__node.domain.runNode(__node.children[" + i.to_s + "], __node.binding, __node.args), __node.args.pop][1]) "
+          " ([x_node.domain.runNode(x_node.children[" + i.to_s + "], binding, x_node.args), x_node.args.pop][1]) "
         when nil
           ""
         end
       }.join("")
-      eval("__node = nil; lambda{|node| __node = node}", node.binding).call(node)
-      eval b, node.binding
+        eval b, node.binding
     end
   end
 
@@ -76,8 +76,8 @@ class Doremi
   def run
     Domain.push self
     @stack = []
-    @sink  = []
-    runNode @doc.children.find{|x| x}, @binding, @sink
+    sink  = []
+    runNode @doc.children.find{|x| x}, @binding, sink
     @doc.children.find{|x| x}.result
   ensure
     Domain.pop
@@ -156,14 +156,7 @@ module DoremiMixin
     Doremi::Domain.last
   end
 
-  def current_doremi_node
-    current_doremi.top
-  end
-
-  def doremi_each(*a, &b)
-    REXML::XPath.each(current_doremi_node, *a, &b)
-  end
-
+  
   def seq(*a)
     a[-1]
   end
@@ -171,6 +164,31 @@ module DoremiMixin
   def id(a)
     a
   end
+
+  def x_node
+    current_doremi.top
+  end
+
+  def ruby2xml(str)
+
+  end
+
+  def x_each(*a, &b)
+    REXML::XPath.each(x_node, *a, &b)
+  end
+
+  def x_first(*a, &b)
+    REXML::XPath.first(x_node, *a, &b)
+  end
+
+  def x_match(*a, &b)
+    REXML::XPath.first(x_node, *a, &b)
+  end
+
+  def x_self
+    eval("self", x_node.binding)
+  end
+
 end
 
 include DoremiMixin
