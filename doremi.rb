@@ -4,7 +4,7 @@ require 'ripper'
 class Doremi
   Domain = []
   def initialize(xml, binding = TOPLEVEL_BINDING)
-    @xml     = "<seq>\n#{xml}\n</seq>"
+    @xml     = "<seq xmlns:r=\"react-like\" xmlns:d=\"doremi\" xmlns:f=\"\">\n#{xml}\n</seq>"
     @doc     = REXML::Document.new(@xml)
     @binding = binding
     @ns      = {}
@@ -115,6 +115,18 @@ module REXML
       x
     end
 
+    def operation(domain = self.domain, binding = self.binding, sink = self.sink)
+      self.domain = domain
+      self.sink   = sink
+      domain.push self
+      self.args  = []
+      self.block = nil
+      self.binding = binding
+      yield(self)
+    ensure
+      domain.pop
+    end
+    
     def doremi(domain, binding, sink)
       self.domain = domain
       self.sink   = sink
@@ -122,7 +134,7 @@ module REXML
       self.args  = []
       self.block = nil
       self.binding = binding
-      return domain.ns(self.namespace).call(self)
+      domain.ns(self.namespace).call(self)
     ensure
       domain.pop
     end
@@ -144,6 +156,7 @@ module DoremiMixin
   def register_namespace(a, b = nil, &c)
      Doremi::Domain.last.register a.to_s, b, &c
   end
+  alias xmlns register_namespace
 
   def register_ns_text(a, b)
      Doremi::Domain.last.register a.to_s do |o|
@@ -155,7 +168,6 @@ module DoremiMixin
   def current_doremi
     Doremi::Domain.last
   end
-
   
   def seq(*a)
     a[-1]
@@ -211,4 +223,6 @@ module DoremiMixin
 end
 
 include DoremiMixin
+
+
 
