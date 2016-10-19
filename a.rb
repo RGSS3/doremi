@@ -1,23 +1,17 @@
 require './doremi.rb'
-include REXML
 Doremi.new(<<-'EOF').run
  <seq xmlns:r="react-like">
-
-  module Macro
-    def self.call(node)
-      send node.name, node
-    end
-    def self.attr_accessor(node)
-      x_each("li"){|x|
-         x_self.send(:attr_accessor, x.text)
-      }
-    end
-  end
-
-  register_namespace "macro", Macro
-
-
   <r:root xmlns:m="macro">
+    register_namespace "macro", Module.new{
+        def self.call(node)
+           send node.name, node
+        end
+        def self.attr_accessor(node)
+          x_each("li"){|x|
+            x_self.send(:attr_accessor, x.text)
+          }
+        end
+    }
     class A
        <m:attr_accessor>
          <li>a</li>

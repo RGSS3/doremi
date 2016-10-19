@@ -169,8 +169,24 @@ module DoremiMixin
     current_doremi.top
   end
 
+  def arr2xml(arr)
+    case arr
+    when Array
+        if arr[0].is_a?(Array)
+          u = REXML::Element.new("List")
+          arr[0].each{|x| u.add(arr2xml(x))}
+          return u
+        end
+        u = REXML::Element.new(arr[0].to_s)
+        arr[1..-1].each{|x| u.add(arr2xml(x))}
+        u
+    else
+        REXML::Text.new(arr.to_s)
+    end
+  end
   def ruby2xml(str)
-
+    r = Ripper.sexp(str)
+    arr2xml(r)
   end
 
   def x_each(*a, &b)
@@ -189,6 +205,9 @@ module DoremiMixin
     eval("self", x_node.binding)
   end
 
+  def x_text
+    x_node.text
+  end
 end
 
 include DoremiMixin
