@@ -43,6 +43,9 @@ class Doremi
       }.join("")
         eval b, node.binding
     end
+    register "xml" do |node|
+      node.sink.push(node)
+    end
   end
 
   def register(a, b = nil, &c)
@@ -219,6 +222,13 @@ module DoremiMixin
 
   def x_text
     x_node.text
+  end
+
+  def x_newnode(*a)
+    REXML::Element.new *a
+  end
+  def x_newtext(*a)
+    REXML::Text.new *a
   end
 end
 
