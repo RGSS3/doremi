@@ -2,9 +2,11 @@ require 'rexml/document'
 require 'rexml/xpath'
 require 'ripper'
 class Doremi
+  Env = Struct.new(:binding, :args, :sink, :block, :domain, :parent)  
+  
   Domain = []
   def initialize(xml, binding = TOPLEVEL_BINDING)
-    @xml     = "<seq xmlns:r=\"react-like\" xmlns:d=\"doremi\" xmlns:f=\"\">\n#{xml}\n</seq>"
+    @xml     = "<seq xmlns:r=\"react-like\" xmlns:x=\"xml\" xmlns:d=\"doremi\" xmlns:f=\"\">\n#{xml}\n</seq>"
     @doc     = REXML::Document.new(@xml)
     @binding = binding
     @ns      = {}
@@ -15,18 +17,18 @@ class Doremi
   def registers
     register "" do |node|
       node.children.each{|x|
-        node.domain.runNode x, node.binding, node.args
+        node.current_env.domain.runNode x, node.current_env.binding, node.current_env.args
       }
       a = node.attributes.map{|k, v| [k, v]}.select{|k, v| !(k =~ /^xmlns:/)}.to_h
       if a.empty?
-        node.result = eval("self", node.binding).send(node.name, *node.args, &node.block)
+        node.result = eval("self", node.current_env.binding).send(node.name, *node.current_env.args, &node.current_env.block)
       else
-        node.result = eval("self", node.binding).send(node.name, *node.args, a, &node.block)
+        node.result = eval("self", node.current_env.binding).send(node.name, *node.current_env.args, a, &node.current_env.block)
       end
-      node.sink.push node.result if node.sink
+      node.current_env.sink.push node.result if node.current_env.sink
     end
     register "doremi" do |node|
-      eval("self", node.binding).send(node.name, node)
+      eval("self", node.current_env.binding).send(node.name, node)
     end
     register 'react-like' do |node|
       #node is a root
@@ -36,15 +38,15 @@ class Doremi
         when REXML::Text
           x
         when REXML::Element
-          " ([x_node.domain.runNode(x_node.children[" + i.to_s + "], binding, x_node.args), x_node.args.pop][1]) "
+          " ([x_node.current_env.domain.runNode(x_node.children[" + i.to_s + "], binding, x_node.current_env.args), x_node.current_env.args.pop][1]) "
         when nil
           ""
         end
       }.join("")
-        eval b, node.binding
+        eval b, node.current_env.binding
     end
     register "xml" do |node|
-      node.sink.push(node)
+      node.current_env.sink.push(node)
     end
   end
 
@@ -106,7 +108,22 @@ module REXML
   end
 
   class Element
-    attr_accessor :args, :block, :result,  :domain, :binding, :sink
+    attr_accessor :result,  :domain,  :sink
+    def env
+       @env ||= []
+    end
+
+    def push_env(env)
+       self.env.push(env)
+    end
+
+    def pop_env
+       self.env.pop
+    end
+
+    def current_env
+       self.env.last
+    end
 
     def xlosure
       x = parent.xlosure
@@ -118,33 +135,40 @@ module REXML
       x
     end
 
-    def operation(domain = self.domain, binding = self.binding, sink = self.sink)
-      self.domain = domain
-      self.sink   = sink
+    def operation(domain = self.domain, binding = sef.binding, sink = self.sink)
+      push_env(Doremi::Env.new)
+      curr = current_env
+      curr.domain = domain
+      curr.sink   = sink
       domain.push self
-      self.args  = []
-      self.block = nil
-      self.binding = binding
+      curr.args  = []
+      curr.block = nil
+      curr.binding = binding
       yield(self)
     ensure
       domain.pop
+      pop_env
     end
     
     def doremi(domain, binding, sink)
-      self.domain = domain
-      self.sink   = sink
+      push_env(Doremi::Env.new)
+      curr = current_env
+      curr.domain = domain
+      curr.sink   = sink
       domain.push self
-      self.args  = []
-      self.block = nil
-      self.binding = binding
+      curr.args  = []
+      curr.block = nil
+      curr.binding = binding
       domain.ns(self.namespace).call(self)
     ensure
       domain.pop
+      pop_env
     end
   end
 
   class Text
     attr_accessor :binding, :result, :sink
+
     def doremi(domain, binding, sink)
       self.binding = binding
       self.sink = sink
@@ -164,7 +188,7 @@ module DoremiMixin
   def register_ns_text(a, b)
      Doremi::Domain.last.register a.to_s do |o|
         name, text = o.name, o.children.map{|x| x.to_s}.join
-        o.sink.push b.send(name, text)
+        o.current_env.sink.push b.send(name, text)
      end
   end
 
@@ -206,6 +230,10 @@ module DoremiMixin
 
   def x_each(*a, &b)
     REXML::XPath.each(x_node, *a, &b)
+  end
+
+  def x_open(x, *a, &b)
+    REXML::XPath.each(x, *a, &b)
   end
 
   def x_first(*a, &b)
