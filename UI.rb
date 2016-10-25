@@ -13,6 +13,7 @@ module UI
   def self.scan_args(args)
     if args.last.is_a?(Hash)
       return args.shift, args
+      
     else
       return {}, args
     end
