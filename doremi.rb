@@ -255,6 +255,32 @@ module DoremiMixin
   def x_newnode(*a)
     REXML::Element.new *a
   end
+
+  def x_pea(node)
+       Class.new do 
+          define_method(:_node) do
+            node
+          end
+          define_method(:initialize) do |*args|
+            @_args = args
+            if args.last.is_a?(Hash)
+               @_opt = @_args.pop
+             else
+               @_opt = {}
+             end
+          
+            @_opt.each{|k, v| instance_variable_set "@#{k}", v} 
+            instance_eval node.text.to_s
+            node.attributes.each{|k, v|
+              next if k[0] == "_"
+              if !instance_variable_defined?("@#{k}")
+                instance_variable_set "@#{k}", v
+              end
+            }
+          end
+      end
+  end
+
   def x_newtext(*a)
     REXML::Text.new *a
   end
