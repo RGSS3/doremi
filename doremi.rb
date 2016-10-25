@@ -5,7 +5,7 @@ class Doremi
   Env = Struct.new(:binding, :args, :sink, :block, :domain, :parent)  
   
   Domain = []
-  def initialize(xml, binding = TOPLEVEL_BINDING)
+  def initialize(xml = "", binding = TOPLEVEL_BINDING)
     @xml     = "<seq xmlns:r=\"react-like\" xmlns:x=\"xml\" xmlns:d=\"doremi\" xmlns:f=\"\">\n#{xml}\n</seq>"
     @doc     = REXML::Document.new(@xml)
     @binding = binding
@@ -172,6 +172,7 @@ module REXML
     def doremi(domain, binding, sink)
       self.binding = binding
       self.sink = sink
+
       self.result = eval(to_s, binding) 
       sink.push(self.result) if to_s.strip!="" && to_s != nil && sink
     end
@@ -284,6 +285,29 @@ module DoremiMixin
   def x_newtext(*a)
     REXML::Text.new *a
   end
+
+  def x_rewrite(node, &block)
+    if node.respond_to?(:children)
+       yield node.dclone, lambda{node.children.map{|x| x_rewrite(x, &block)}}, node.children
+    else
+       yield node.dclone, nil, nil
+    end
+  end
+
+  def x_replace!(node, select, &block)
+    REXML::XPath.each(node, select){|n|
+      r = yield(n)
+      if r
+        n.parent.replace_child(n, r)
+      end
+    }
+    node
+  end
+
+  def x_replace(node, select, &block)
+    x_replace!(node.dclone, select, &block)
+  end
+
 end
 
 include DoremiMixin
