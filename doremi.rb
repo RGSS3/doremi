@@ -6,7 +6,7 @@ class Doremi
   
   Domain = []
   def initialize(xml = "", binding = TOPLEVEL_BINDING)
-    @xml     = "<seq xmlns:r=\"react-like\" xmlns:x=\"xml\" xmlns:d=\"doremi\" xmlns:f=\"\">\n#{xml}\n</seq>"
+    @xml     = "<seq xmlns:r=\"xrb\" xmlns:x=\"xml\" xmlns:d=\"doremi\" xmlns:f=\"\">\n#{xml}\n</seq>"
     @doc     = REXML::Document.new(@xml)
     @binding = binding
     @ns      = {}
@@ -30,20 +30,8 @@ class Doremi
     register "doremi" do |node|
       eval("self", node.current_env.binding).send(node.name, node)
     end
-    register 'react-like' do |node|
-      #node is a root
-      a = node.children
-      b = a.map.with_index{|x, i|      
-        case x 
-        when REXML::Text
-          x
-        when REXML::Element
-          " ([x_node.current_env.domain.runNode(x_node.children[" + i.to_s + "], binding, x_node.current_env.args), x_node.current_env.args.pop][1]) "
-        when nil
-          ""
-        end
-      }.join("")
-        eval b, node.current_env.binding
+    register 'xrb' do |node|
+      xrb_eval(node)
     end
     register "xml" do |node|
       node.current_env.sink.push(node)
@@ -255,6 +243,22 @@ module DoremiMixin
 
   def x_newnode(*a)
     REXML::Element.new *a
+  end
+
+  def xrb_eval(node)
+      #node is a root
+      a = node.children
+      b = a.map.with_index{|x, i|
+        case x 
+        when REXML::Text
+          x
+        when REXML::Element
+          " ([x_node.current_env.domain.runNode(x_node.children[" + i.to_s + "], binding, x_node.current_env.args), x_node.current_env.args.pop][1]) "
+        when nil
+          ""
+        end
+      }.join("")
+      eval b, node.current_env.binding
   end
 
   def x_pea(node)
